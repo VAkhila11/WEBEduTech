@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAppStore } from "../store";
 import { School, MapPin, Star, SlidersHorizontal, Eye, X, Heart, Plus, Check } from "lucide-react";
 import { API_BASE_URL } from "../config";
+import { defaultStudentProfile } from "../lib/defaultStudentProfile";
 
 interface College {
   id: string;
@@ -25,10 +26,11 @@ interface College {
 }
 
 export default function Colleges() {
-  const { compareColleges, addCompare, removeCompare } = useAppStore();
+  const { user, compareColleges, addCompare, removeCompare } = useAppStore();
+  const activeProfile = user?.profile || defaultStudentProfile;
 
   // Search/Filter states
-  const [stateFilter, setStateFilter] = useState("");
+  const [stateFilter, setStateFilter] = useState(activeProfile.state);
   const [courseFilter, setCourseFilter] = useState("");
   const [feesFilter, setFeesFilter] = useState("");
   const [placementFilter, setPlacementFilter] = useState("");

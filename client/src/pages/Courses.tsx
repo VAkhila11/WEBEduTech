@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Compass, Clock, HelpCircle, X } from "lucide-react";
 import { API_BASE_URL } from "../config";
+import { defaultStudentProfile } from "../lib/defaultStudentProfile";
+import { useAppStore } from "../store";
 
 interface Course {
   id: string;
@@ -35,9 +37,11 @@ interface Career {
 export default function Courses() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const user = useAppStore((state) => state.user);
+  const activeProfile = user?.profile || defaultStudentProfile;
 
   // Selected stream from query parameters or default
-  const streamParam = searchParams.get("stream") || "MPC";
+  const streamParam = searchParams.get("stream") || activeProfile.intermediateStream;
 
   // States
   const [coursesList, setCoursesList] = useState<Course[]>([]);
@@ -67,6 +71,25 @@ export default function Courses() {
       .then((data) => setCareersList(data))
       .catch((err) => console.error("Failed to load careers:", err));
   }, []);
+
+  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+  const visibleCareers = careersList.filter((career) => {
+    const associatedCourses = career.associatedCourses || [];
+    if (associatedCourses.length > 0) {
+      return associatedCourses.some((courseName) =>
+        coursesList.some((course) => normalize(course.name) === normalize(courseName))
+      );
+    }
+
+    const careerName = normalize(career.title);
+    return coursesList.some((course) =>
+      course.careerOpportunities.some((opportunity) => {
+        const opportunityName = normalize(opportunity);
+        return careerName.includes(opportunityName) || opportunityName.includes(careerName);
+      })
+    );
+  });
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8 py-16 w-full relative page-wrapper bg-slate-50 dark:bg-dark-bg transition-colors"> {/* strict padding & py-16 (64px) */}
@@ -117,22 +140,22 @@ export default function Courses() {
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-indigo/10 text-brand-indigo rounded uppercase">
+                  <span className="text-xs font-bold px-2.5 py-1 bg-brand-indigo/10 text-brand-indigo rounded uppercase">
                     {course.stream}
                   </span>
-                  <div className="flex items-center space-x-1.5 text-slate-400 text-xs">
-                    <Clock className="h-3.5 w-3.5" />
+                  <div className="flex items-center space-x-1.5 text-slate-400 text-sm">
+                    <Clock className="h-4 w-4" />
                     <span>{course.durationYears} Years</span>
                   </div>
                 </div>
 
-                <h3 className="font-extrabold text-base mb-2 leading-snug min-h-[44px] text-slate-900 dark:text-white">{course.name}</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 mb-4">
+                <h3 className="font-extrabold text-lg mb-3 leading-snug min-h-[52px] text-slate-900 dark:text-white">{course.name}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-3 mb-5 leading-relaxed">
                   {course.overview}
                 </p>
 
                 {/* Info Pills */}
-                <div className="grid grid-cols-2 gap-2 text-xs mb-6">
+                <div className="grid grid-cols-2 gap-2 text-sm mb-6">
                   <div className="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200/50 dark:border-slate-800/80">
                     <div className="text-slate-400">Min Salary</div>
                     <div className="font-bold mt-0.5 text-slate-800 dark:text-slate-200">₹{course.salaryRangeMin} LPA</div>
@@ -146,7 +169,7 @@ export default function Courses() {
 
               <button
                 onClick={() => setSelectedCourse(course)}
-                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-brand-indigo hover:text-brand-purple transition-all"
+                className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-sm font-bold text-brand-indigo hover:text-brand-purple transition-all"
               >
                 Detailed Overview
               </button>
@@ -158,32 +181,32 @@ export default function Courses() {
       {/* Career Roadmaps Subheading */}
       <div className="mb-8">
         <h2 className="text-h3 text-slate-900 dark:text-white mb-2">Visual Career Roadmaps</h2> {/* strict H3 typography */}
-        <p className="text-sm text-slate-400">Map out your pathway from Intermediate studies to high-paying jobs</p>
+        <p className="text-base text-slate-400">Map out your pathway from Intermediate studies to high-paying jobs</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8"> {/* strict gap-8 (32px) */}
-        {careersList
-          .filter((c) =>
-            c.associatedCourses.some((acName) => coursesList.some((cl) => cl.name === acName))
-          )
-          .map((career) => (
+        {visibleCareers.length === 0 ? (
+          <div className="glass-card p-8 rounded-3xl text-sm text-slate-400 md:col-span-2">
+            Career roadmaps are being prepared for this stream.
+          </div>
+        ) : visibleCareers.map((career) => (
             <div
               key={career.title}
               className="bg-white dark:bg-dark-card p-6 border border-slate-200 dark:border-dark-border rounded-3xl flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow"
             >
               <div>
-                <h3 className="font-bold text-base text-slate-900 dark:text-white mb-2">{career.title}</h3>
-                <p className="text-xs text-slate-400 leading-relaxed mb-6">{career.description}</p>
+                <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-3">{career.title}</h3>
+                <p className="text-sm text-slate-400 leading-relaxed mb-6">{career.description}</p>
 
                 {/* Vertical SVG connection node lines */}
                 <div className="relative pl-6 space-y-4">
                   <div className="absolute top-2.5 bottom-2.5 left-2 w-0.5 bg-indigo-200 dark:bg-slate-800" />
                   {career.roadmapSteps.map((step, idx) => (
-                    <div key={idx} className="relative flex items-start space-x-3 text-xs">
+                    <div key={idx} className="relative flex items-start space-x-3 text-sm">
                       <span className="absolute -left-[22px] top-1.5 h-2 w-2 rounded-full bg-brand-indigo ring-4 ring-indigo-100 dark:ring-brand-indigo/25" />
                       <div>
-                        <div className="font-extrabold text-slate-800 dark:text-white">{step.title}</div>
-                        <div className="text-slate-400 mt-0.5">{step.desc}</div>
+                        <div className="font-extrabold text-base text-slate-800 dark:text-white">{step.title}</div>
+                        <div className="text-slate-400 mt-1 leading-relaxed">{step.desc}</div>
                       </div>
                     </div>
                   ))}
