@@ -1,0 +1,269 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String?        @unique
+  mobileNumber  String?        @unique
+  passwordHash  String?
+  role          String         @default("student") // student, counselor, admin, super_admin
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  profile       Profile?
+  bookmarks     Bookmark[]
+  reviews       Review[]
+  applications  Application[]
+  queries       Query[]
+  notifications Notification[]
+  posts         Post[]
+}
+
+model Profile {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName           String
+  gender             String
+  state              String
+  district           String
+  category           String   // OC, OBC, SC, ST, EWS etc.
+  intermediateStream String   // MPC, BiPC, MEC, CEC, HEC
+  marks              Float?   // Class 12 percentage or marks
+  rank               Int?     // Entrance exam rank
+  interests          String[] // Technical, Medical, Creative, etc.
+  careerGoals        String[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Course {
+  id                 String               @id @default(uuid())
+  name               String               @unique // e.g. B.Tech Computer Science
+  stream             String               // MPC, BiPC, MEC, CEC, HEC
+  overview           String
+  eligibility        String
+  feesRange          String
+  durationYears      Int
+  skillsRequired     String[]
+  careerOpportunities String[]
+  salaryRangeMin     Float
+  salaryRangeMax     Float
+  futureScope        String
+  successStories     Json?                // JSON array of stories
+  faqs               Json?                // JSON array of FAQs
+  collegeCourses     CollegeCourse[]
+  careerPaths        CourseCareerPath[]
+  scholarships       CourseScholarship[]
+}
+
+model CareerPath {
+  id                  String               @id @default(uuid())
+  title               String               @unique
+  description         String
+  roadmapSteps        Json                 // JSON representation of visual roadmap nodes
+  averageSalary       Float
+  industryDemand      String               // High, Medium, Low
+  futureGrowth        String
+  topRecruiters       String[]
+  requiredSkills      String[]
+  courses             CourseCareerPath[]
+}
+
+model CourseCareerPath {
+  id           String     @id @default(uuid())
+  courseId     String
+  course       Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  careerPathId String
+  careerPath   CareerPath @relation(fields: [careerPathId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, careerPathId])
+}
+
+model Exam {
+  id                String       @id @default(uuid())
+  name              String       @unique // TS EAPCET, JEE Main, NEET
+  category          String       // Engineering, Medical, Law etc.
+  eligibility       String
+  syllabus          String
+  pattern           String
+  notifications     String[]     // Latest notifications / news
+  previousPapers    Json?        // Links to pdfs
+  cutoffs           Json?        // Cutoff description
+  counselingProcess String
+  dates             ExamDate[]
+}
+
+model ExamDate {
+  id          String   @id @default(uuid())
+  examId      String
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  eventName   String   // e.g. Registration Starts, Exam Date, Results
+  eventDate   DateTime
+  isConfirmed Boolean  @default(false)
+}
+
+model College {
+  id             String          @id @default(uuid())
+  name           String          @unique
+  about          String
+  location       String          // City
+  state          String          // State
+  district       String
+  feesRange      String
+  rating         Float           @default(0.0)
+  nirfRank       Int?
+  accreditation  String?         // NAAC A+, NBA
+  placementPct   Float?
+  avgPackage     Float?          // in LPA
+  highestPackage Float?          // in LPA
+  hostelDetails  String?
+  gallery        String[]        // Image URLs
+  videos         String[]        // Video URLs
+  mapEmbedUrl    String?
+  collegeCourses CollegeCourse[]
+  reviews        Review[]
+  bookmarks      Bookmark[]
+}
+
+model CollegeCourse {
+  id          String        @id @default(uuid())
+  collegeId   String
+  college     College       @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  cutoffRanks CutoffRank[]
+  predictor   PredictorData[]
+}
+
+model CutoffRank {
+  id              String        @id @default(uuid())
+  collegeCourseId String
+  collegeCourse   CollegeCourse @relation(fields: [collegeCourseId], references: [id], onDelete: Cascade)
+  year            Int
+  category        String        // OC, BC_A, SC, ST etc.
+  gender          String        // Co-Education, Girls
+  cutoffRank      Int
+}
+
+model PredictorData {
+  id              String        @id @default(uuid())
+  collegeCourseId String
+  collegeCourse   CollegeCourse @relation(fields: [collegeCourseId], references: [id], onDelete: Cascade)
+  category        String
+  gender          String
+  cutoffRank      Int
+  quota           String        // State Quota, All India Quota
+}
+
+model Scholarship {
+  id              String              @id @default(uuid())
+  name            String              @unique
+  providerType    String              // Government, Private
+  providerName    String
+  amount          Float
+  eligibility     String
+  description     String
+  deadline        DateTime?
+  state           String?             // Specific state or All India
+  categoryCheck   String[]            // Applicable categories
+  genderCheck     String?             // All, Girls, Boys
+  minIncome       Float?              // Max income threshold
+  courses         CourseScholarship[]
+  applications    Application[]
+}
+
+model CourseScholarship {
+  id            String      @id @default(uuid())
+  courseId      String
+  course        Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  scholarshipId String
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, scholarshipId])
+}
+
+model Application {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scholarshipId String
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  status        String      @default("submitted") // submitted, in_review, approved, rejected
+  appliedDate   DateTime    @default(now())
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collegeId String
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, collegeId])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collegeId String
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  rating    Float
+  comment   String
+  createdAt DateTime @default(now())
+}
+
+model Query {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  question    String
+  answer      String
+  isAi        Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  category  String   // Exam, Admission, General
+  createdAt DateTime @default(now())
+}
+
+model Blog {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  title     String
+  content   String
+  summary   String
+  author    String
+  tags      String[]
+  createdAt DateTime @default(now())
+}
+
+model Analytics {
+  id        String   @id @default(uuid())
+  metric    String   // pageview, predictor_use, query
+  details   String?  // search keywords or details
+  timestamp DateTime @default(now())
+}
