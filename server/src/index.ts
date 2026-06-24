@@ -11,7 +11,7 @@ import adminRouter from "./routes/admin";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
 
 // Enable CORS for frontend client interactions
 app.use(cors());
@@ -24,9 +24,19 @@ app.use("/api/predictor", predictorRouter);
 app.use("/api/ai", aiRouter);
 app.use("/api/admin", adminRouter);
 
+// Root endpoint for Railway / default deployment checks
+app.get("/", (req, res) => {
+  res.json({
+    message: "EDUTech backend is running",
+    health: "/health",
+    api: "/api",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Health check endpoint
 app.get("/health", (req, res) => {
-  res.json({ status: "healthy", timestamp: new Date() });
+  res.json({ status: "healthy", timestamp: new Date().toISOString() });
 });
 
 // Startup hook
@@ -35,8 +45,8 @@ async function main() {
   await checkDbConnection();
   await seedDatabase();
 
-  app.listen(PORT, () => {
-    console.log(`🚀 EDUTech Express Backend listening at http://localhost:${PORT}`);
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 EDUTech Express Backend listening on port ${PORT}`);
   });
 }
 
