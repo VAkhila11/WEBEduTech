@@ -72,6 +72,7 @@ model CareerPath {
   futureGrowth        String
   topRecruiters       String[]
   requiredSkills      String[]
+  associatedCourses   String[]             // Course names associated with this career
   courses             CourseCareerPath[]
 }
 

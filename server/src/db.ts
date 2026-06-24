@@ -156,18 +156,23 @@ export async function seedDatabase() {
 
     // Seed Careers
     for (const car of mockData.careers) {
+      const careerData = {
+        description: car.description,
+        roadmapSteps: car.roadmapSteps,
+        averageSalary: car.averageSalary,
+        industryDemand: car.industryDemand,
+        futureGrowth: car.futureGrowth,
+        topRecruiters: car.topRecruiters,
+        requiredSkills: car.requiredSkills,
+        associatedCourses: car.associatedCourses,
+      };
+
       await prisma.careerPath.upsert({
         where: { title: car.title },
-        update: {},
+        update: careerData,
         create: {
           title: car.title,
-          description: car.description,
-          roadmapSteps: car.roadmapSteps,
-          averageSalary: car.averageSalary,
-          industryDemand: car.industryDemand,
-          futureGrowth: car.futureGrowth,
-          topRecruiters: car.topRecruiters,
-          requiredSkills: car.requiredSkills,
+          ...careerData,
         },
       });
     }
