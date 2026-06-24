@@ -18,11 +18,17 @@ app.use(cors());
 app.use(express.json());
 
 // Load API endpoints
+// Support both /api/* and legacy root-level paths for Railway/frontend compatibility
 app.use("/api/auth", authRouter);
+app.use("/auth", authRouter);
 app.use("/api", explorerRouter);
+app.use("/", explorerRouter);
 app.use("/api/predictor", predictorRouter);
+app.use("/predictor", predictorRouter);
 app.use("/api/ai", aiRouter);
+app.use("/ai", aiRouter);
 app.use("/api/admin", adminRouter);
+app.use("/admin", adminRouter);
 
 // Root endpoint for Railway / default deployment checks
 app.get("/", (req, res) => {
